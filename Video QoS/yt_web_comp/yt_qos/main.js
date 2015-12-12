@@ -6,7 +6,10 @@
 // 2. This code loads the IFrame Player API code asynchronously.
 var tag = document.createElement('script');
 var start_time, end_time;
+var total_frozen_time=0, total_play_time=0;
 var info_tag = document.getElementById('yt_event_info');
+var frozen_tag = document.getElementById('yt_frozen_info');
+var play_tag = document.getElementById('yt_play_info');
 
 tag.src = "https://www.youtube.com/iframe_api";
 var firstScriptTag = document.getElementsByTagName('script')[0];
@@ -16,7 +19,6 @@ firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 //    after the API code downloads.
 var player;
 function onYouTubeIframeAPIReady() {
-    info_tag.innerHTML = 'API ready';
     player = new YT.Player('player', {
         height: '390',
         width: '640',
@@ -40,11 +42,11 @@ Date.prototype.timeNow = function () {
 
 // 4. The API will call this function when the video player is ready.
 function onPlayerReady(event) {
-    console.log("player is ready"); // a debug message
+    info_tag.innerHTML = "player is ready";
     // print date and time
-    var newDate = new Date();
+    /* var newDate = new Date();
     var datetime = "Query DateTime: " + newDate.today() + " " + newDate.timeNow();
-    console.log(datetime);
+    console.log(datetime); */
     start_time = +new Date();
     // event.target.playVideo();
     playVideo();
@@ -62,20 +64,19 @@ function onPlayerStateChange(event) {
             info_tag.innerHTML = 'event: playing video';
 
             // get elapsed time since first buffering event
-            if (last_state === YT.PlayerState.BUFFERING) {
+            if (last_state == null || last_state === YT.PlayerState.BUFFERING) {
                 // this is a freezing duration
-
-            }
-            if (!done) {
-                // print date and time
-                var newDate = new Date();
-                var datetime = "Query DateTime: " + newDate.today() + " " + newDate.timeNow();
-                console.log(datetime);
                 end_time = +new Date();
                 var diff = end_time - start_time;
-                var datetime = "Initial Video Load Time: " + diff;
-                str = "event: playing video<br /> " + datetime + "ms";
-                info_tag.innerHTML = str;
+                total_frozen_time += diff;
+                var str = "Video Frozen Time: " + diff + "ms / " + total_frozen_time + " ms";
+                frozen_tag.innerHTML = str;
+            }
+            if (!done) {
+                /* / print date and time
+                var newDate = new Date();
+                var datetime = "Query DateTime: " + newDate.today() + " " + newDate.timeNow();
+                console.log(datetime); */
                 setTimeout(stopVideo, 6000);
                 done = true;
             }
@@ -84,6 +85,9 @@ function onPlayerStateChange(event) {
             info_tag.innerHTML = 'event: paused video';
             break;
         case YT.PlayerState.BUFFERING:
+            if (last_state !== null && last_state !== YT.PlayerState.BUFFERING) {
+                start_time = +new Date();
+            }
             info_tag.innerHTML = 'event: buffering video';
             break;
         case YT.PlayerState.CUED:
